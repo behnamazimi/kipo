@@ -22,6 +22,9 @@ import { applyFiltersToGroups, type SortOption } from "../utils/filter-utils.js"
 import { getPlatformAdapter } from "../platform/platform-factory.js";
 import { logger } from "../utils/logger.js";
 import { setupKeyboardHandlers, type DashboardHandlers } from "./dashboard-handlers.js";
+import { generateKillMessage } from "../gamification/kill-messages.js";
+import { recordKill, loadStats, getStatsSummary } from "../gamification/stats.js";
+import { getCurrentRank, formatRank, checkRankUp } from "../gamification/killer-ranks.js";
 
 export interface DashboardState {
   ports: PortInfo[];
@@ -46,6 +49,12 @@ export interface DashboardState {
   searching: boolean; // Port search mode (like lsof -i :PORT)
   isKilling: boolean; // Loading state while killing
   killingPort: number | null; // Port being killed
+  // Gamification state
+  killMessage: { message: string; emoji?: string; color?: string } | null;
+  killMessageExpiresAt: number | null;
+  showStats: boolean;
+  statsContent: string | null;
+  currentRank: string | null;
 }
 
 export class Dashboard {
@@ -118,6 +127,11 @@ export class Dashboard {
       searching: false,
       isKilling: false,
       killingPort: null,
+      killMessage: null,
+      killMessageExpiresAt: null,
+      showStats: false,
+      statsContent: null,
+      currentRank: null,
     };
   }
 
@@ -126,6 +140,11 @@ export class Dashboard {
    */
   async start(): Promise<void> {
     this.isRunning = true;
+
+    // Load initial stats and rank
+    const stats = loadStats();
+    const rank = getCurrentRank(stats.totalKills);
+    this.state.currentRank = formatRank(rank);
 
     // Setup keyboard handlers
     this.setupKeyboard();
@@ -192,6 +211,7 @@ export class Dashboard {
       this.state.showConfirm ||
       this.state.showLogs ||
       this.state.showCommand ||
+      this.state.showStats ||
       this.state.searching
     );
   }
@@ -560,7 +580,8 @@ export class Dashboard {
       this.state.showHelp ||
       this.state.showConfirm ||
       this.state.showLogs ||
-      this.state.showCommand
+      this.state.showCommand ||
+      this.state.showStats
     ) {
       this.renderer.clear();
       this.renderer.hideCursor();
@@ -573,11 +594,21 @@ export class Dashboard {
         this.renderLogs();
       } else if (this.state.showCommand) {
         this.renderCommand();
+      } else if (this.state.showStats) {
+        this.renderStats();
       }
 
       this.renderer.render();
       this.previousRenderState = null; // Reset delta state for modal views
       return;
+    }
+
+    // Check and clear expired kill messages
+    if (this.state.killMessage && this.state.killMessageExpiresAt) {
+      if (Date.now() > this.state.killMessageExpiresAt) {
+        this.state.killMessage = null;
+        this.state.killMessageExpiresAt = null;
+      }
     }
 
     // For main view, use delta rendering
@@ -692,6 +723,7 @@ export class Dashboard {
    */
   private renderHeader(): void {
     const filteredPorts = this.getFilteredPorts();
+    const { width } = this.renderer.getScreenSize();
 
     this.renderer.moveTo(0, 0);
     this.renderer.styled(" wtfports ", Styles.bold, Colors.white, Backgrounds.blue);
@@ -708,6 +740,15 @@ export class Dashboard {
     this.renderer.color(`Ports: ${filteredPorts.length}`, Colors.cyan);
     this.renderer.text(" | ");
     this.renderer.color(`Sort: ${this.state.sortBy}`, Colors.brightBlack);
+
+    // Show current rank on the right side
+    if (this.state.currentRank) {
+      const rankText = `${this.state.currentRank}`;
+      const rankX = width - rankText.length - 1;
+      this.renderer.moveTo(rankX, 0);
+      this.renderer.color(rankText, Colors.brightMagenta);
+    }
+
     this.renderer.clearToEndOfLine();
   }
 
@@ -870,9 +911,16 @@ export class Dashboard {
       this.renderer.text(" | ");
       this.renderer.color("k: kill", Colors.brightBlack);
       this.renderer.text(" | ");
+      this.renderer.color("s: stats", Colors.brightBlack);
+      this.renderer.text(" | ");
       this.renderer.color("?: help", Colors.brightBlack);
     }
     this.renderer.clearToEndOfLine();
+
+    // Render kill message toast if present
+    if (this.state.killMessage) {
+      this.renderKillMessage();
+    }
   }
 
   /**
@@ -897,6 +945,7 @@ export class Dashboard {
       ["c", "Copy command to clipboard"],
       ["v", "View full command"],
       ["l", "View process logs"],
+      ["s", "View statistics"],
       ["d", "Toggle details view"],
       ["1/2/3", "Sort by port/process/pid"],
       ["g", "Toggle group collapse"],
@@ -1047,5 +1096,67 @@ export class Dashboard {
     this.renderer.moveTo(0, height - 1);
     this.renderer.color("Press ESC to close", Colors.brightBlack);
     this.renderer.clearToEndOfLine();
+  }
+
+  /**
+   * Render stats modal
+   */
+  private renderStats(): void {
+    const { width, height } = this.renderer.getScreenSize();
+
+    this.renderer.moveTo(0, 0);
+    this.renderer.styled(" Statistics ", Styles.bold, Colors.white, Backgrounds.blue);
+    this.renderer.clearToEndOfLine();
+
+    if (this.state.statsContent) {
+      const lines = this.state.statsContent.split("\n");
+      let y = 2;
+      for (const line of lines) {
+        if (y >= height - 2) break;
+        this.renderer.moveTo(0, y);
+        this.renderer.text(truncate(line, width));
+        this.renderer.clearToEndOfLine();
+        y++;
+      }
+    }
+
+    this.renderer.moveTo(0, height - 1);
+    this.renderer.color("Press ESC or s to close", Colors.brightBlack);
+    this.renderer.clearToEndOfLine();
+  }
+
+  /**
+   * Render kill message toast
+   */
+  private renderKillMessage(): void {
+    if (!this.state.killMessage) return;
+
+    const { width, height } = this.renderer.getScreenSize();
+    const msg = this.state.killMessage;
+    const emoji = msg.emoji ? `${msg.emoji} ` : "";
+    const message = `${emoji}${msg.message}`;
+
+    // Determine color
+    let color: ANSIColor = Colors.green;
+    if (msg.color === "red") {
+      color = Colors.red;
+    } else if (msg.color === "yellow") {
+      color = Colors.yellow;
+    } else if (msg.color === "cyan") {
+      color = Colors.cyan;
+    }
+
+    // Show toast at bottom center (above footer)
+    const toastY = height - 3;
+    const messageWidth = Math.min(message.length + 4, width - 4);
+    const startX = Math.max(0, Math.floor((width - messageWidth) / 2));
+
+    // Clear the line first
+    this.renderer.moveTo(0, toastY);
+    this.renderer.clearLine();
+
+    // Render message with background
+    this.renderer.moveTo(startX, toastY);
+    this.renderer.styled(` ${message} `, Styles.bold, color, Backgrounds.brightBlack);
   }
 }

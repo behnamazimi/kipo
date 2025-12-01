@@ -13,6 +13,9 @@ import {
   getFullCommand,
 } from "../actions/port-actions.js";
 import { getPlatformAdapter } from "../platform/platform-factory.js";
+import { generateKillMessage } from "../gamification/kill-messages.js";
+import { recordKill, loadStats } from "../gamification/stats.js";
+import { getCurrentRank, formatRank, checkRankUp } from "../gamification/killer-ranks.js";
 
 export interface DashboardHandlers {
   // State access
@@ -44,7 +47,12 @@ export function setupKeyboardHandlers(
   const isModalOpen = (): boolean => {
     const state = getState();
     return (
-      state.showHelp || state.showConfirm || state.showLogs || state.showCommand || state.searching
+      state.showHelp ||
+      state.showConfirm ||
+      state.showLogs ||
+      state.showCommand ||
+      state.showStats ||
+      state.searching
     );
   };
 
@@ -168,6 +176,31 @@ export function setupKeyboardHandlers(
     handlers.render();
   });
 
+  // Stats shortcut
+  keyboard.on("s", async () => {
+    if (isModalOpen() && !getState().showStats) {
+      return;
+    }
+    const state = getState();
+    if (state.showStats) {
+      setState((state) => {
+        state.showStats = false;
+        state.statsContent = null;
+      });
+    } else {
+      const { loadStats, getStatsSummary } = await import("../gamification/stats.js");
+      const { getCurrentRank, formatRank } = await import("../gamification/killer-ranks.js");
+      const stats = loadStats();
+      const rank = getCurrentRank(stats.totalKills);
+      const summary = getStatsSummary(stats);
+      setState((state) => {
+        state.showStats = true;
+        state.statsContent = `${formatRank(rank)}\n\n${summary}`;
+      });
+    }
+    handlers.render();
+  });
+
   keyboard.on(Shortcuts.ESCAPE, () => {
     const state = getState();
     if (state.searching) {
@@ -199,6 +232,12 @@ export function setupKeyboardHandlers(
       setState((state) => {
         state.showCommand = false;
         state.commandContent = null;
+      });
+      handlers.render();
+    } else if (state.showStats) {
+      setState((state) => {
+        state.showStats = false;
+        state.statsContent = null;
       });
       handlers.render();
     }
@@ -246,6 +285,44 @@ async function handleKill(handlers: DashboardHandlers): Promise<void> {
 
   try {
     const killed = await killPort(selected.port, false, false);
+
+    // Gamification: Record kill and generate message
+    if (killed) {
+      const previousStats = loadStats();
+      const stats = recordKill(selected.port, false);
+      const killMsg = generateKillMessage(selected.port, true, false);
+
+      // Check for rank up
+      const previousRank = getCurrentRank(previousStats.totalKills);
+      const newRank = getCurrentRank(stats.totalKills);
+      const rankUp = checkRankUp(previousStats.totalKills, stats.totalKills);
+
+      setState((state) => {
+        // Show kill message (expires after 3 seconds)
+        state.killMessage = killMsg;
+        state.killMessageExpiresAt = Date.now() + 3000;
+
+        // Update rank
+        state.currentRank = formatRank(newRank);
+
+        // If rank up, show special message
+        if (rankUp) {
+          state.killMessage = {
+            message: `🎉 Rank Up! You are now a ${formatRank(rankUp)}!`,
+            emoji: rankUp.emoji,
+            color: "yellow",
+          };
+          state.killMessageExpiresAt = Date.now() + 5000; // Longer for rank up
+        }
+      });
+    } else {
+      // Failed kill
+      const killMsg = generateKillMessage(selected.port, false, false);
+      setState((state) => {
+        state.killMessage = killMsg;
+        state.killMessageExpiresAt = Date.now() + 3000;
+      });
+    }
 
     // Clear cache to force immediate refresh
     handlers.clearFilteredPortsCache();
