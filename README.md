@@ -1,8 +1,10 @@
-# kipo
+# icport
 
 A cross-platform CLI tool for monitoring and managing network ports. Provides a terminal UI (TUI) for viewing active ports, killing processes, and managing port usage.
 
-![kipo TUI Screenshot](./ss.png)
+> **icport** stands for "I see port".
+
+![icport TUI Screenshot](./ss.png)
 
 ## Installation
 
@@ -13,29 +15,29 @@ A cross-platform CLI tool for monitoring and managing network ports. Provides a 
 Install with a single command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/behnamazimi/kipo/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/behnamazimi/icport/main/install.sh | bash
 ```
 
 Or download and run the installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/behnamazimi/kipo/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/behnamazimi/icport/main/install.sh -o install.sh
 chmod +x install.sh
 ./install.sh
 ```
 
 **Windows:**
 
-For native Windows (PowerShell/CMD), download the `.exe` manually from [Releases](https://github.com/behnamazimi/kipo/releases).
+For native Windows (PowerShell/CMD), download the `.exe` manually from [Releases](https://github.com/behnamazimi/icport/releases).
 
 ### Standalone Binary
 
-Download the pre-built binary for your platform from [Releases](https://github.com/behnamazimi/kipo/releases).
+Download the pre-built binary for your platform from [Releases](https://github.com/behnamazimi/icport/releases).
 
 ### npm
 
 ```bash
-npm install -g kipo
+npm install -g icport
 ```
 
 ### From Source
@@ -43,7 +45,7 @@ npm install -g kipo
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd kipo
+cd icport
 
 # Install dependencies
 npm install
@@ -64,7 +66,7 @@ node dist/cli.js    # Production with Node.js
 Launch the terminal UI:
 
 ```bash
-kipo
+icport
 ```
 
 ### Command Line Mode
@@ -72,16 +74,16 @@ kipo
 Kill a process on a specific port:
 
 ```bash
-kipo kill 3000
-kipo kill --port 3000 --force
+icport kill 3000
+icport kill --port 3000 --force
 ```
 
 Filter and sort:
 
 ```bash
-kipo --type dev-server
-kipo --type "dev-*" --user "j*"
-kipo --sort port --type api
+icport --type dev-server
+icport --type "dev-*" --user "j*"
+icport --sort port --type api
 ```
 
 ### Keyboard Shortcuts (TUI Mode)

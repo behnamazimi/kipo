@@ -39,10 +39,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            bin/kipo-win-x64.exe
-            bin/kipo-macos-x64
-            bin/kipo-macos-arm64
-            bin/kipo-linux-x64
+            bin/icport-win-x64.exe
+            bin/icport-macos-x64
+            bin/icport-macos-arm64
+            bin/icport-linux-x64
           name: Release ${{ steps.tag_version.outputs.VERSION }}
           draft: false
           prerelease: false

@@ -232,7 +232,7 @@ export class DashboardRenderer {
     const { width } = this.renderer.getScreenSize();
 
     this.renderer.moveTo(0, 0);
-    this.renderer.styled(" kipo ", Styles.bold, Colors.white, Backgrounds.blue);
+    this.renderer.styled(" icport ", Styles.bold, Colors.white, Backgrounds.blue);
     this.renderer.text(" ");
 
     if (state.isKilling && state.killingPort) {

@@ -2,10 +2,10 @@
  * Help text for the CLI
  */
 
-export const HELP_TEXT = `kipo - Terminal TUI for Monitoring and Managing Network Ports
+export const HELP_TEXT = `icport - Terminal TUI for Monitoring and Managing Network Ports
 
 USAGE:
-  kipo [command] [options]
+  icport [command] [options]
 
 COMMANDS:
   kill <port>              Kill process(es) using the specified port
@@ -33,17 +33,17 @@ KILL COMMAND OPTIONS:
 
 EXAMPLES:
   # Launch interactive TUI
-  kipo
+  icport
 
   # Launch TUI with filters
-  kipo --type dev-server
-  kipo --type "dev-*" --user "j*"
-  kipo --sort port --type api
+  icport --type dev-server
+  icport --type "dev-*" --user "j*"
+  icport --sort port --type api
 
   # Kill processes
-  kipo kill 3000
-  kipo kill --port 3000
-  kipo kill 3000 --force
+  icport kill 3000
+  icport kill --port 3000
+  icport kill 3000 --force
 
 KEYBOARD SHORTCUTS (TUI Mode):
   Navigation:

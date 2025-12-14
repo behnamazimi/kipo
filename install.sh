@@ -10,8 +10,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-GITHUB_REPO="${GITHUB_REPO:-behnamazimi/kipo}"
-BINARY_NAME="kipo"
+GITHUB_REPO="${GITHUB_REPO:-behnamazimi/icport}"
+BINARY_NAME="icport"
 VERSION="${VERSION:-latest}"
 
 # Determine install directory (will be set by detect_install_dir)
@@ -74,20 +74,20 @@ detect_platform() {
     # Map to binary name
     if [ "$os" = "windows" ]; then
         if [ "$arch" = "x64" ]; then
-            binary="kipo-win-x64.exe"
+            binary="icport-win-x64.exe"
         else
             error "Windows ARM64 is not supported yet"
             exit 1
         fi
     elif [ "$os" = "macos" ]; then
         if [ "$arch" = "x64" ]; then
-            binary="kipo-macos-x64"
+            binary="icport-macos-x64"
         elif [ "$arch" = "arm64" ]; then
-            binary="kipo-macos-arm64"
+            binary="icport-macos-arm64"
         fi
     elif [ "$os" = "linux" ]; then
         if [ "$arch" = "x64" ]; then
-            binary="kipo-linux-x64"
+            binary="icport-linux-x64"
         else
             error "Linux ARM64 is not supported yet"
             exit 1
@@ -176,7 +176,7 @@ install_binary() {
     # Make executable
     chmod +x "$install_path"
 
-    success "Installed kipo to $install_path"
+    success "Installed icport to $install_path"
 }
 
 # Check if directory is in PATH
@@ -322,7 +322,7 @@ verify_installation() {
 
 # Main installation function
 main() {
-    info "Installing kipo..."
+    info "Installing icport..."
 
     # Check for Windows (native, not Git Bash/WSL)
     if [ "$(uname -s)" = "MINGW"* ] || [ "$(uname -s)" = "MSYS"* ]; then
@@ -377,7 +377,7 @@ main() {
         info "Installing to $INSTALL_DIR (requires sudo)..."
         sudo cp "$temp_binary" "${INSTALL_DIR}/${BINARY_NAME}"
         sudo chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
-        success "Installed kipo to $INSTALL_DIR"
+        success "Installed icport to $INSTALL_DIR"
     else
         install_binary "$temp_binary"
     fi
@@ -394,12 +394,12 @@ main() {
     verify_installation
 
     echo ""
-    success "kipo has been installed successfully!"
+    success "icport has been installed successfully!"
     
     if is_in_path "$INSTALL_DIR"; then
-        info "Run 'kipo' to start using it."
+        info "Run 'icport' to start using it."
     else
-        info "Run '${INSTALL_DIR}/kipo' to start using it."
+        info "Run '${INSTALL_DIR}/icport' to start using it."
         if [ "$INSTALL_DIR" != "/usr/local/bin" ]; then
             warning "Remember to add $INSTALL_DIR to your PATH or restart your terminal."
         fi
