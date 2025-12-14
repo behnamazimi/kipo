@@ -1,10 +1,8 @@
 # icport
 
-A cross-platform CLI tool for monitoring and managing network ports. Provides a terminal UI (TUI) for viewing active ports, killing processes, and managing port usage.
+**icport** (as in "I see port") is a cross-platform CLI tool for monitoring and managing network ports. It provides a terminal UI (TUI) for viewing active ports, killing processes, and managing port usage.
 
-> **icport** stands for "I see port".
-
-![icport TUI Screenshot](./ss.png)
+![icport TUI Screenshot](./icport.png)
 
 ## Installation
 
