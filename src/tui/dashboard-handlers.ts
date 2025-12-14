@@ -3,7 +3,7 @@
  * Extracted from dashboard.ts to reduce complexity
  */
 
-import type { DashboardState } from "./dashboard.js";
+import type { DashboardState } from "./dashboard-state.js";
 import type { PortInfo, PortGroup } from "../port/types.js";
 import { Shortcuts } from "./keyboard.js";
 import {
@@ -32,6 +32,7 @@ export interface DashboardHandlers {
   stop: () => void;
   clearFilteredPortsCache: () => void;
   clearDetectorCache: () => void;
+  clearSearchBuffer: () => void;
 }
 
 /**
@@ -82,9 +83,13 @@ export function setupKeyboardHandlers(
     if (isModalOpen()) {
       return;
     }
+    // Clear search buffer when entering search mode
+    handlers.clearSearchBuffer();
     setState((state) => {
       state.searching = true;
+      state.filter = "";
     });
+    handlers.clearFilteredPortsCache();
     handlers.render();
   });
 
@@ -204,7 +209,8 @@ export function setupKeyboardHandlers(
   keyboard.on(Shortcuts.ESCAPE, () => {
     const state = getState();
     if (state.searching) {
-      // Note: searchBuffer is managed in dashboard.ts
+      // Clear search buffer and exit search mode
+      handlers.clearSearchBuffer();
       setState((state) => {
         state.searching = false;
         state.filter = "";
